@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>สวนหน้าบ้าน 🌿</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;600&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Kanit', sans-serif; background-color: #fcfaf7; overflow: hidden; }
+        .menu-card { transition: all 0.2s; background: white; cursor: pointer; border-radius: 15px; border: 1px solid #e2e8f0; }
+        .menu-card:active { transform: scale(0.95); background-color: #fef3c7; }
+        .category-header { grid-column: 1 / -1; margin-top: 1rem; border-left: 4px solid #065f46; padding-left: 0.75rem; margin-bottom: 0.5rem; color: #065f46; font-weight: bold; font-size: 0.875rem; }
+        .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 100; align-items: center; justify-content: center; backdrop-filter: blur(8px); }
+        @media print { .print-hidden { display: none !important; } #receipt-area { width: 100% !important; position: absolute; top: 0; left: 0; } }
+        #receipt-logo-img { max-width: 90px; max-height: 90px; object-fit: contain; }
+    </style>
+</head>
+<body class="text-slate-700">
+
+    <script>
+        // URL จากรูป IMG_2329
+        const scriptURL = 'https://script.google.com/macros/s/AKfycbwogAsSvv0K3AIECn2MeLwynRPhrDC1-pnzdihWSq6kpd1qM6P6EWWbTNDsH8nbijfp/exec';
+        
+        let menuItems = JSON.parse(localStorage.getItem('garden_menu')) || [
+            { name: 'ยอด 200g (ชุด 3 ถุง)', price: 50, cat: 'ยอดมะพร้าว (ถุง)', icon: '📦' },
+            { name: 'ยอด 200g (ถุงเดียว)', price: 20, cat: 'ยอดมะพร้าว (ถุง)', icon: '🛍️' },
+            { name: 'ยอด 400g (ชุด 3 ถุง)', price: 100, cat: 'ยอดมะพร้าว (ถุง)', icon: '📦' },
+            { name: 'ยอด 500g', price: 60, cat: 'ยอดมะพร้าว (ถุง)', icon: '🥥' }
+        ];
+        let branchList = JSON.parse(localStorage.getItem('garden_branches')) || ["สาขา 05"];
+        let branchName = localStorage.getItem('selected_branch') || branchList[0];
+        let shopAddress = localStorage.getItem('shop_address') || "กรุณากรอกที่อยู่ร้าน";
+        let shopLogoData = localStorage.getItem('shop_logo_data') || "";
+        let orderQ = parseInt(localStorage.getItem('garden_order_q')) || 1; 
+        
+        let cart = []; 
+        let discountValue = 0;
+        let discountType = 'percent'; 
+        let editingIdx = null;
+
+        function updateQueueDisplay() {
+            const qString = orderQ.toString().padStart(2, '0');
+            document.getElementById('next-q').innerText = '#' + qString;
+            document.getElementById('receipt-q').innerText = qString;
+            localStorage.setItem('garden_order_q', orderQ);
+        }
+
+        function resetQueue() {
+            if(confirm('ต้องการเริ่มคิวใหม่ที่ #01 ใช่หรือไม่?')) {
+                orderQ = 1;
+                updateQueueDisplay();
+                if(document.getElementById('admin-modal').style.display === 'flex') closeAdmin();
+            }
+        }
+    </script>
+
+    <div id="admin-modal" class="modal print-hidden">
+        <div class="bg-white rounded-[30px] w-full max-w-md p-6 shadow-2xl m-4">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-xl font-bold text-green-900"><i class="fas fa-cog"></i> ตั้งค่าระบบ</h2>
+                <button onclick="closeAdmin()" class="text-2xl text-slate-400">&times;</button>
+            </div>
+            <div class="space-y-4 max-h-[60vh] overflow-y-auto pr-2">
+                <div class="bg-green-50 p-4 rounded-2xl border border-green-100">
+                    <label class="text-[10px] font-bold text-green-600 uppercase mb-2 block">โลโก้และที่อยู่</label>
+                    <div class="flex items-center gap-4 mb-3">
+                        <div id="logo-preview-admin" class="w-16 h-16 bg-white border rounded-xl flex items-center justify-center overflow-hidden"><i class="fas fa-image text-slate-300"></i></div>
+                        <input type="file" id="logo-upload" accept="image/*" class="hidden" onchange="handleLogoUpload(this)">
+                        <button onclick="document.getElementById('logo-upload').click()" class="bg-white border px-3 py-2 rounded-lg text-[10px] font-bold shadow-sm text-green-700">เปลี่ยนโลโก้</button>
+                    </div>
+                    <textarea id="address-input" class="w-full p-2 bg-white border rounded-lg text-xs" rows="2" placeholder="ที่อยู่ร้านค้า"></textarea>
+                </div>
+                <div class="bg-amber-50 p-4 rounded-2xl border border-amber-100">
+                    <label class="text-[10px] font-bold text-amber-600 uppercase mb-2 block">จัดการสาขา</label>
+                    <div id="branch-edit-list" class="space-y-2"></div>
+                </div>
+                <div class="bg-slate-50 p-4 rounded-2xl border border-slate-200">
+                    <div class="flex justify-between items-center mb-2">
+                        <label class="text-[10px] font-bold text-slate-500 uppercase">รายการสินค้า</label>
+                        <button onclick="addNewMenuItem()" class="text-[10px] bg-green-700 text-white px-3 py-1 rounded-full">+ เพิ่มสินค้า</button>
+                    </div>
+                    <div id="admin-menu-list" class="space-y-3"></div>
+                </div>
+            </div>
+            <button onclick="saveSettings()" class="w-full bg-green-800 text-white py-4 rounded-2xl font-bold mt-6 shadow-lg hover:bg-green-700">บันทึกทั้งหมด</button>
+        </div>
+    </div>
+
+    <div class="flex h-screen">
+        <div class="w-2/3 p-6 overflow-y-auto print-hidden">
+            <div class="flex justify-between items-center mb-6">
+                <div>
+                    <h1 class="text-2xl font-black text-green-900 flex items-center gap-2">
+                        <i class="fas fa-store text-green-600"></i> <span id="display-branch-title"></span>
+                    </h1>
+                    <select id="branch-selector" onchange="changeBranch(this.value)" class="text-xs bg-green-50 border border-green-200 rounded-lg p-1.5 font-bold text-green-800 outline-none mt-1"></select>
+                </div>
+                <div class="flex items-center gap-3">
+                    <button onclick="openAdmin()" class="p-3 bg-white border rounded-full text-slate-400 shadow-sm hover:text-green-600"><i class="fas fa-cog"></i></button>
+                    <div class="flex items-center bg-green-100 rounded-2xl border border-green-200 overflow-hidden">
+                        <button onclick="resetQueue()" class="px-3 text-green-600 hover:bg-green-200 transition-colors border-r border-green-200 h-10">
+                            <i class="fas fa-sync-alt text-xs"></i>
+                        </button>
+                        <div class="px-5 py-1 font-black text-green-800 text-xl" id="next-q">#01</div>
+                    </div>
+                </div>
+            </div>
+            <div id="menu-grid" class="grid grid-cols-2 lg:grid-cols-3 gap-3"></div>
+        </div>
+
+        <div id="receipt-area" class="w-1/3 bg-white shadow-2xl flex flex-col border-l">
+            <div class="p-6 text-center border-b border-dashed border-slate-200 flex flex-col items-center">
+                <img id="receipt-logo-img" src="" class="hidden mb-2" alt="Logo">
+                <h2 class="font-black text-green-900 text-[18px] uppercase mb-1">Suan Na Baan</h2>
+                <p id="receipt-address" class="text-[9px] text-slate-500 leading-tight mb-2 whitespace-pre-line"></p>
+                <div class="w-full border-t border-slate-100 pt-2">
+                    <p class="font-bold text-slate-800 text-[10px]">RECEIPT / BRANCH: <span id="branch-display-receipt"></span></p>
+                    <div class="text-4xl font-black text-slate-900 my-1">#<span id="receipt-q">01</span></div>
+                    <p id="cur-date" class="text-[10px] text-slate-400 italic"></p>
+                </div>
+            </div>
+            <div id="cart-items" class="flex-grow p-4 overflow-y-auto space-y-2 bg-slate-50/50"></div>
+            
+            <div class="p-6 bg-white border-t space-y-3">
+                <div class="flex items-center gap-2 print-hidden">
+                    <span class="text-slate-400 font-bold text-[10px] uppercase flex-grow">ส่วนลด</span>
+                    <div class="flex bg-slate-100 p-1 rounded-lg">
+                        <button onclick="setDiscountType('baht')" id="btn-type-baht" class="px-2 py-1 text-[10px] font-bold rounded-md text-slate-400">฿</button>
+                        <button onclick="setDiscountType('percent')" id="btn-type-percent" class="px-2 py-1 text-[10px] font-bold rounded-md bg-white shadow-sm">%</button>
+                    </div>
+                    <input type="number" id="discount-input" oninput="updateDiscount(this.value)" value="0" class="w-16 p-1 border-b text-right font-bold text-red-500 outline-none">
+                </div>
+
+                <div class="space-y-1">
+                    <div id="discount-row" class="hidden flex justify-between text-red-500 text-xs font-bold italic">
+                        <span id="label-discount">ส่วนลด</span>
+                        <span>-<span id="display-discount-baht">0</span>.-</span>
+                    </div>
+                    <div class="flex justify-between items-end">
+                        <span class="text-slate-400 font-bold text-xs uppercase">ยอดสุทธิ</span>
+                        <span class="text-4xl font-black text-green-900"><span id="total-price">0</span>.-</span>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-2 print-hidden">
+                    <button onclick="clearCart()" class="py-4 bg-slate-100 text-slate-400 rounded-xl font-bold text-sm">ล้าง</button>
+                    <button id="btn-pay" onclick="handleCheckout()" class="py-4 bg-green-700 text-white rounded-xl font-black text-lg shadow-lg hover:bg-green-800">พิมพ์บิล</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="edit-modal" class="modal print-hidden"><div class="bg-white p-6 rounded-3xl w-80 shadow-2xl text-center"><h3 id="edit-title" class="font-bold mb-2">แก้ไขจำนวน</h3><input type="number" id="edit-input" class="w-full p-4 text-3xl font-black text-center bg-slate-100 rounded-2xl outline-none"><div class="grid grid-cols-2 gap-3 mt-6"><button onclick="closeEdit()" class="py-3 bg-slate-100 rounded-xl font-bold">ยกเลิก</button><button onclick="confirmEdit()" class="py-3 bg-green-700 text-white rounded-xl font-bold">ตกลง</button></div><button onclick="deleteItem()" class="w-full py-3 bg-red-50 text-red-500 rounded-xl font-bold mt-3 text-xs"><i class="fas fa-trash"></i> ลบรายการนี้</button></div></div>
+    <div id="weigh-modal" class="modal print-hidden"><div class="bg-white p-6 rounded-3xl w-80 shadow-2xl text-center"><h3 id="weigh-title" class="font-bold mb-4 text-green-800">ระบุราคา</h3><input type="number" id="weigh-input" class="w-full p-4 text-3xl font-black text-center bg-slate-100 rounded-2xl outline-none"><div class="grid grid-cols-2 gap-3 mt-4"><button onclick="closeWeigh()" class="py-3 bg-slate-100 rounded-xl font-bold">ยกเลิก</button><button onclick="confirmWeigh()" class="py-3 bg-green-800 text-white rounded-xl font-bold">ตกลง</button></div></div></div>
+
+    <script>
+        function updateBranchOptions() {
+            const selector = document.getElementById('branch-selector');
+            selector.innerHTML = branchList.map(b => `<option value="${b}" ${b === branchName ? 'selected' : ''}>📍 ${b}</option>`).join('');
+            document.getElementById('display-branch-title').innerText = branchName;
+            document.getElementById('branch-display-receipt').innerText = branchName;
+        }
+
+        function setDiscountType(type) {
+            discountType = type;
+            document.getElementById('btn-type-baht').className = type === 'baht' ? 'px-2 py-1 text-[10px] font-bold rounded-md bg-white shadow-sm' : 'px-2 py-1 text-[10px] font-bold rounded-md text-slate-400';
+            document.getElementById('btn-type-percent').className = type === 'percent' ? 'px-2 py-1 text-[10px] font-bold rounded-md bg-white shadow-sm' : 'px-2 py-1 text-[10px] font-bold rounded-md text-slate-400';
+            updateUI();
+        }
+
+        function handleLogoUpload(input) {
+            if (input.files && input.files[0]) {
+                const reader = new FileReader();
+                reader.onload = e => { 
+                    shopLogoData = e.target.result; 
+                    document.getElementById('logo-preview-admin').innerHTML = `<img src="${shopLogoData}" class="w-full h-full object-contain">`; 
+                };
+                reader.readAsDataURL(input.files[0]);
+            }
+        }
+
+        function openAdmin() {
+            document.getElementById('admin-modal').style.display = 'flex';
+            document.getElementById('address-input').value = shopAddress;
+            if(shopLogoData) document.getElementById('logo-preview-admin').innerHTML = `<img src="${shopLogoData}" class="w-full h-full object-contain">`;
+            renderAdminLists();
+        }
+
+        function saveSettings() {
+            try {
+                localStorage.setItem('garden_menu', JSON.stringify(menuItems));
+                localStorage.setItem('garden_branches', JSON.stringify(branchList));
+                localStorage.setItem('shop_address', document.getElementById('address-input').value);
+                localStorage.setItem('shop_logo_data', shopLogoData);
+                shopAddress = document.getElementById('address-input').value;
+                updateReceiptHeader(); updateBranchOptions(); renderMenu(); closeAdmin();
+            } catch (e) {
+                alert("ไม่สามารถบันทึกข้อมูลได้: พื้นที่จัดเก็บเต็ม (ลองใช้รูปโลโก้ที่เล็กลง)");
+            }
+        }
+
+        function updateUI() {
+            const list = document.getElementById('cart-items'); let subtotal = 0;
+            list.innerHTML = cart.map((item, idx) => {
+                const sum = item.price * item.qty; subtotal += sum;
+                return `<div class="flex justify-between items-center bg-white p-3 rounded-xl border border-slate-100 shadow-sm"><div class="flex flex-col"><span class="text-[11px] font-bold">${item.name}</span><span class="text-[9px] text-slate-400">${item.price} x ${item.qty}</span></div><div class="flex items-center gap-3"><span class="font-black text-green-700 text-xs">${sum}.-</span><button onclick="openEdit(${idx})" class="w-7 h-7 bg-green-50 text-green-600 rounded-full flex items-center justify-center text-[10px]"><i class="fas fa-pen"></i></button></div></div>`;
+            }).join('');
+            
+            let calculatedDiscount = (discountType === 'percent') ? (subtotal * discountValue / 100) : discountValue;
+            let finalTotal = Math.max(0, subtotal - calculatedDiscount);
+
+            document.getElementById('total-price').innerText = Math.round(finalTotal).toLocaleString();
+            document.getElementById('display-discount-baht').innerText = Math.round(calculatedDiscount).toLocaleString();
+            document.getElementById('discount-row').className = calculatedDiscount > 0 ? "flex justify-between text-red-500 text-xs font-bold italic" : "hidden";
+            document.getElementById('cur-date').innerText = new Date().toLocaleString('th-TH');
+            updateReceiptHeader();
+        }
+
+        function renderMenu() {
+            const grid = document.getElementById('menu-grid'); grid.innerHTML = '';
+            const cats = [...new Set(menuItems.map(i => i.cat))];
+            cats.forEach(c => {
+                const head = document.createElement('div'); head.className = 'category-header'; head.innerText = c; grid.appendChild(head);
+                menuItems.filter(i => i.cat === c).forEach(item => {
+                    const card = document.createElement('div');
+                    card.className = 'menu-card p-4 flex flex-col items-center text-center shadow-sm';
+                    card.onclick = () => addToCart(item.name, item.price);
+                    card.innerHTML = `<span class="text-3xl mb-1">${item.icon || '🌿'}</span><span class="text-[10px] font-bold h-8 flex items-center leading-tight justify-center">${item.name}</span><span class="text-green-800 font-black">${item.price}.-</span>`;
+                    grid.appendChild(card);
+                });
+            });
+        }
+
+        function renderAdminLists() {
+            document.getElementById('branch-edit-list').innerHTML = branchList.map((b, i) => `<div class="flex gap-1"><input type="text" value="${b}" onchange="branchList[${i}]=this.value" class="w-full p-2 text-xs border rounded-lg font-bold mb-1"><button onclick="branchList.splice(${i},1);renderAdminLists()" class="text-red-400 p-2"><i class="fas fa-times"></i></button></div>`).join('') + `<button onclick="branchList.push('สาขาใหม่');renderAdminLists()" class="text-[10px] text-blue-500 font-bold">+ เพิ่มสาขา</button>`;
+            document.getElementById('admin-menu-list').innerHTML = menuItems.map((item, idx) => `
+                <div class="bg-white p-3 rounded-xl border border-slate-100 space-y-2 shadow-sm">
+                    <div class="flex gap-2"><input type="text" value="${item.name}" onchange="menuItems[${idx}].name=this.value" class="flex-grow text-[11px] font-bold border-b outline-none"><input type="number" value="${item.price}" onchange="menuItems[${idx}].price=Number(this.value)" class="w-16 p-1 border rounded text-right text-[11px]"></div>
+                    <div class="flex gap-2 items-center"><input type="text" value="${item.cat}" onchange="menuItems[${idx}].cat=this.value" class="flex-grow text-[10px] border-b outline-none text-green-700"><button onclick="menuItems.splice(${idx},1);renderAdminLists()" class="text-red-400 px-2"><i class="fas fa-trash-alt"></i></button></div>
+                </div>`).join('');
+        }
+
+        function updateReceiptHeader() {
+            document.getElementById('receipt-address').innerText = shopAddress;
+            const logoImg = document.getElementById('receipt-logo-img');
+            if(shopLogoData) { logoImg.src = shopLogoData; logoImg.classList.remove('hidden'); } else logoImg.classList.add('hidden');
+        }
+
+        function closeAdmin() { document.getElementById('admin-modal').style.display = 'none'; }
+        function addToCart(name, price) { const found = cart.find(i => i.name === name && i.price === price); if(found) found.qty++; else cart.push({ name, price, qty: 1 }); updateUI(); }
+        function addNewMenuItem() { menuItems.push({ name: 'สินค้าใหม่', price: 0, cat: 'ทั่วไป', icon: '🌿' }); renderAdminLists(); }
+        function changeBranch(val) { branchName = val; localStorage.setItem('selected_branch', val); updateUI(); document.getElementById('branch-display-receipt').innerText = val; }
+        function openEdit(idx) { editingIdx = idx; document.getElementById('edit-title').innerText = cart[idx].name; document.getElementById('edit-input').value = cart[idx].qty; document.getElementById('edit-modal').style.display = 'flex'; }
+        function confirmEdit() { if(parseFloat(document.getElementById('edit-input').value) > 0) { cart[editingIdx].qty = parseFloat(document.getElementById('edit-input').value); closeEdit(); updateUI(); } }
+        function deleteItem() { if(confirm('ลบรายการนี้?')) { cart.splice(editingIdx, 1); closeEdit(); updateUI(); } }
+        function closeEdit() { document.getElementById('edit-modal').style.display = 'none'; }
+        
+        async function handleCheckout() { 
+            if (cart.length === 0) return; 
+            const btn = document.getElementById('btn-pay'); btn.disabled = true;
+            const subtotal = cart.reduce((s, i) => s + (i.price * i.qty), 0);
+            let calcDisc = (discountType === 'percent') ? (subtotal * discountValue / 100) : discountValue;
+            const finalAmount = Math.round(subtotal - calcDisc);
+            
+            // เตรียมข้อมูลตาม IMG_2329
+            const payload = { 
+                date: new Date().toLocaleString('th-TH'), 
+                branch: branchName,
+                items: cart.map(i => `${i.name}(${i.qty})`).join(', ') + (calcDisc > 0 ? ` [ลด ${Math.round(calcDisc)}]` : ""), 
+                total: finalAmount,
+                queue: orderQ 
+            };
+
+            try { 
+                await fetch(scriptURL, { method: 'POST', mode: 'no-cors', body: JSON.stringify(payload) }); 
+                window.print(); 
+                orderQ++; 
+                updateQueueDisplay(); 
+                cart = []; discountValue = 0; document.getElementById('discount-input').value = 0; updateUI(); 
+            } catch (e) { 
+                window.print(); 
+            } finally { 
+                btn.disabled = false; 
+            } 
+        }
+
+        function updateDiscount(val) { discountValue = parseFloat(val) || 0; updateUI(); }
+        function clearCart() { cart = []; discountValue = 0; document.getElementById('discount-input').value = 0; updateUI(); }
+
+        updateQueueDisplay();
+        updateBranchOptions(); 
+        renderMenu(); 
+        updateUI();
+    </script>
+</body>
+</html>
