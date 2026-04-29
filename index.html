@@ -10,22 +10,15 @@
     <style>
         body { font-family: 'Kanit', sans-serif; background-color: #f8fafc; margin: 0; padding: 0; }
         .main-container { display: flex; flex-wrap: wrap; height: 100vh; width: 100%; }
-        
-        /* ส่วนเมนูสินค้า */
         .menu-side { flex: 1 1 600px; overflow-y: auto; padding: 1.5rem; background: #f8fafc; }
-        .menu-card { transition: all 0.2s; background: white; cursor: pointer; border-radius: 20px; border: 1px solid #f1f5f9; position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 1rem; }
+        .menu-card { transition: all 0.2s; background: white; cursor: pointer; border-radius: 20px; border: 1px solid #f1f5f9; position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 1rem; height: 120px; }
         .menu-card:active { transform: scale(0.95); background-color: #f0fdf4; }
         .category-header { grid-column: 1 / -1; margin-top: 1rem; border-left: 4px solid #15803d; padding-left: 0.75rem; color: #15803d; font-weight: bold; font-size: 0.85rem; }
-        
-        /* ส่วนบิลใบเสร็จ */
         .receipt-side { flex: 0 0 350px; background: white; border-left: 1px solid #e2e8f0; display: flex; flex-direction: column; box-shadow: -4px 0 15px rgba(0,0,0,0.05); height: 100vh; position: sticky; top: 0; }
         .receipt-header { padding: 1rem; text-align: center; border-bottom: 1px dashed #e2e8f0; }
-        #receipt-logo-img { max-width: 50px; margin-bottom: 0.5rem; }
         .receipt-q-text { font-size: 2.2rem; line-height: 1; font-weight: 900; color: #1e293b; margin: 0.1rem 0; }
-        
         .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 100; align-items: center; justify-content: center; backdrop-filter: blur(4px); }
         .weight-tag { position: absolute; top: 6px; right: 6px; font-size: 8px; background: #dcfce7; color: #166534; padding: 1px 6px; border-radius: 8px; font-weight: bold; }
-
         @media (max-width: 950px) {
             .main-container { flex-direction: column; overflow-y: auto; height: auto; }
             .menu-side { width: 100%; height: auto; flex: none; }
@@ -37,20 +30,12 @@
 <body class="text-slate-700">
 
     <script>
-        // --- ส่วนตั้งค่าเริ่มต้นสำหรับทุกเครื่อง ---
-        const scriptURL = 'https://script.google.com/macros/s/AKfycby_03FB3yaccRhxfVq2Y9ahDxs_J-eUdEqVs0LYmQRtGqNY3DDoTh3GqLmHQGpahYMf/exec'; // ใส่ URL ของคุณที่นี่
-        
-        // รายการสินค้าเริ่มต้น (Hardcode ข้อมูลร้าน ณ Coco)
+        const scriptURL = 'YOUR_APPS_SCRIPT_URL';
         const defaultMenu = [
             { name: 'ยอด 200g (ชุด 3 ถุง)', price: 50, cat: 'ยอดมะพร้าว (ถุง)', icon: '📦' },
-            { name: 'ยอด 200g (ถุงเดียว)', price: 20, cat: 'ยอดมะพร้าว (ถุง)', icon: '🛍️' },
-            { name: 'ยอด 400g (ชุด 3 ถุง)', price: 100, cat: 'ยอดมะพร้าว (ถุง)', icon: '📦' },
-            { name: 'ยอด 400g (ถุงเดียว)', price: 35, cat: 'ยอดมะพร้าว (ถุง)', icon: '🛍️' },
             { name: 'ยอด 500g', price: 60, cat: 'ยอดมะพร้าว (ถุง)', icon: '🥥' },
+            { name: 'ยอดกะลา (ชั่ง)', price: 100, cat: 'ยอดมะพร้าว', icon: '⚖️', isWeight: true },
             { name: 'น้ำมะพร้าว 250ml', price: 25, cat: 'เครื่องดื่ม', icon: '🌿' },
-            { name: 'น้ำมะพร้าว 200ml', price: 20, cat: 'เครื่องดื่ม', icon: '🌿' },
-            { name: 'น้ำตาลสด แก้ว', price: 25, cat: 'เครื่องดื่ม', icon: '🥤' },
-            { name: 'มะพร้าวลูก (ถุง 6 ลูก)', price: 100, cat: 'มะพร้าวผล', icon: '🥥' },
             { name: 'มะพร้าว (ปลีก/ลูก)', price: 25, cat: 'มะพร้าวผล', icon: '🥥' }
         ];
 
@@ -59,9 +44,7 @@
         let branchName = localStorage.getItem('selected_branch') || branchList[0];
         let shopAddress = localStorage.getItem('shop_address') || "ณ COCO - สดจากสวน โทร 0910276732";
         let promptpayID = localStorage.getItem('garden_pp_id') || "0966697979"; 
-        let shopLogoData = localStorage.getItem('shop_logo_data') || "";
         let orderQ = parseInt(localStorage.getItem('garden_order_q')) || 1; 
-        
         let cart = []; 
         let discountType = 'percent'; 
         let editingIdx = -1;
@@ -87,7 +70,6 @@
 
         <div id="receipt-area" class="receipt-side">
             <div class="receipt-header">
-                <div id="receipt-logo-container"></div>
                 <h2 class="font-black text-slate-800 uppercase text-sm">Suan Na Baan</h2>
                 <p id="receipt-address" class="text-[9px] text-slate-400"></p>
                 <div class="receipt-q-box my-2 border-y py-1">
@@ -121,86 +103,73 @@
         </div>
     </div>
 
+    <div id="edit-modal" class="modal print-hidden">
+        <div class="bg-white p-6 rounded-[2rem] w-72 shadow-2xl text-center">
+            <h3 id="edit-title" class="font-bold text-sm mb-3">จำนวน/น้ำหนัก</h3>
+            <input type="number" step="0.01" id="edit-input" class="w-full p-3 text-3xl font-black text-center bg-slate-50 rounded-2xl outline-none text-green-700">
+            <div class="grid grid-cols-2 gap-2 mt-6">
+                <button onclick="closeEdit()" class="py-3 bg-slate-100 rounded-xl font-bold text-slate-400">ยกเลิก</button>
+                <button onclick="confirmEdit()" class="py-3 bg-green-700 text-white rounded-xl font-bold">ตกลง</button>
+            </div>
+        </div>
+    </div>
+
     <div id="admin-modal" class="modal print-hidden">
         <div class="bg-white rounded-[2rem] w-full max-w-lg p-6 shadow-2xl m-4 max-h-[90vh] flex flex-col">
-            <div class="flex justify-between items-center mb-4">
-                <h2 class="text-lg font-bold">⚙️ ตั้งค่าระบบ</h2>
-                <button onclick="closeAdmin()" class="text-slate-400 text-2xl">&times;</button>
-            </div>
+            <div class="flex justify-between items-center mb-4"><h2 class="text-lg font-bold">⚙️ ตั้งค่า</h2><button onclick="closeAdmin()" class="text-slate-400 text-2xl">&times;</button></div>
             <div class="flex-grow overflow-y-auto pr-2 space-y-4">
                 <div class="bg-slate-50 p-3 rounded-xl border">
-                    <label class="text-[10px] font-bold text-slate-400 block mb-1">ข้อมูลหลัก</label>
-                    <div class="grid grid-cols-2 gap-2 mb-2">
-                        <input type="text" id="pp-id-input" placeholder="พร้อมเพย์" class="p-2 border rounded-lg text-sm">
-                        <input type="text" id="address-input" placeholder="ชื่อร้าน/ที่อยู่" class="p-2 border rounded-lg text-sm">
-                    </div>
+                    <div class="grid grid-cols-2 gap-2"><input type="text" id="pp-id-input" placeholder="พร้อมเพย์" class="p-2 border rounded-lg text-sm"><input type="text" id="address-input" placeholder="ที่อยู่ร้าน" class="p-2 border rounded-lg text-sm"></div>
                 </div>
-                <div class="space-y-2">
-                    <div class="flex justify-between"><label class="text-[10px] font-bold text-slate-400">จัดการสาขา</label></div>
-                    <div id="branch-edit-list" class="grid grid-cols-2 gap-2"></div>
-                </div>
-                <div class="space-y-2 border-t pt-4">
-                    <div class="flex justify-between items-center"><label class="text-[10px] font-bold text-slate-400 uppercase">สินค้า</label>
-                    <button onclick="addNewMenuItem()" class="text-[10px] bg-green-600 text-white px-3 py-1 rounded-full">+ เพิ่ม</button></div>
+                <div id="branch-edit-list" class="grid grid-cols-2 gap-2"></div>
+                <div class="border-t pt-4">
+                    <div class="flex justify-between items-center mb-2"><label class="text-[10px] font-bold text-slate-400">สินค้า</label><button onclick="addNewMenuItem()" class="text-[10px] bg-green-600 text-white px-3 py-1 rounded-full">+ เพิ่ม</button></div>
                     <div id="admin-menu-list" class="space-y-2"></div>
                 </div>
             </div>
-            <button onclick="saveSettings()" class="w-full bg-green-700 text-white py-3 rounded-xl font-bold mt-4">บันทึกข้อมูลเครื่องนี้</button>
+            <button onclick="saveSettings()" class="w-full bg-green-700 text-white py-3 rounded-xl font-bold mt-4">บันทึก</button>
         </div>
     </div>
 
     <script>
-        // ฟังก์ชัน Logic ทั้งหมด
         function renderAdminLists() {
-            document.getElementById('branch-edit-list').innerHTML = branchList.map((b, i) => `
-                <div class="flex bg-white border rounded-lg p-1 items-center">
-                    <input type="text" value="${b}" onchange="branchList[${i}]=this.value" class="flex-grow text-[10px] p-1 outline-none font-bold">
-                    <button onclick="branchList.splice(${i},1);renderAdminLists()" class="text-red-400 px-1">&times;</button>
-                </div>`).join('');
-
+            document.getElementById('branch-edit-list').innerHTML = branchList.map((b, i) => `<div class="flex bg-white border rounded-lg p-1 items-center"><input type="text" value="${b}" onchange="branchList[${i}]=this.value" class="flex-grow text-[10px] p-1 font-bold outline-none"><button onclick="branchList.splice(${i},1);renderAdminLists()" class="text-red-400 px-1">&times;</button></div>`).join('');
             document.getElementById('admin-menu-list').innerHTML = menuItems.map((item, idx) => `
-                <div class="bg-white p-2 rounded-xl border flex gap-2 items-center">
-                    <input type="text" value="${item.icon}" onchange="menuItems[${idx}].icon=this.value" class="w-8 p-1 bg-slate-50 rounded text-center">
-                    <input type="text" value="${item.name}" onchange="menuItems[${idx}].name=this.value" class="flex-grow text-[11px] font-bold outline-none">
-                    <input type="number" value="${item.price}" onchange="menuItems[${idx}].price=Number(this.value)" class="w-12 p-1 bg-slate-50 rounded text-right text-[11px]">
-                    <button onclick="menuItems.splice(${idx},1);renderAdminLists()" class="text-red-400"><i class="fas fa-trash-alt text-[10px]"></i></button>
+                <div class="bg-white p-2 rounded-xl border flex flex-col gap-2">
+                    <div class="flex gap-2 items-center">
+                        <input type="text" value="${item.icon}" onchange="menuItems[${idx}].icon=this.value" class="w-8 p-1 bg-slate-50 rounded text-center">
+                        <input type="text" value="${item.name}" onchange="menuItems[${idx}].name=this.value" class="flex-grow text-[11px] font-bold outline-none">
+                        <input type="number" value="${item.price}" onchange="menuItems[${idx}].price=Number(this.value)" class="w-12 p-1 bg-slate-50 rounded text-right text-[11px]">
+                    </div>
+                    <div class="flex justify-between items-center px-1">
+                        <input type="text" value="${item.cat}" onchange="menuItems[${idx}].cat=this.value" class="text-[9px] text-green-600 border-b outline-none" placeholder="หมวดหมู่">
+                        <label class="text-[9px] flex items-center gap-1"><input type="checkbox" ${item.isWeight?'checked':''} onchange="menuItems[${idx}].isWeight=this.checked"> ชั่ง กก.</label>
+                        <button onclick="menuItems.splice(${idx},1);renderAdminLists()" class="text-red-400 text-[10px]"><i class="fas fa-trash"></i></button>
+                    </div>
                 </div>`).join('');
         }
 
         function saveSettings() {
-            promptpayID = document.getElementById('pp-id-input').value;
-            shopAddress = document.getElementById('address-input').value;
-            localStorage.setItem('garden_pp_id', promptpayID);
-            localStorage.setItem('shop_address', shopAddress);
-            localStorage.setItem('garden_menu', JSON.stringify(menuItems));
-            localStorage.setItem('garden_branches', JSON.stringify(branchList));
+            promptpayID = document.getElementById('pp-id-input').value; shopAddress = document.getElementById('address-input').value;
+            localStorage.setItem('garden_pp_id', promptpayID); localStorage.setItem('shop_address', shopAddress);
+            localStorage.setItem('garden_menu', JSON.stringify(menuItems)); localStorage.setItem('garden_branches', JSON.stringify(branchList));
             updateBranchOptions(); renderMenu(); updateUI(); closeAdmin();
         }
 
-        function updateBranchOptions() {
-            const selector = document.getElementById('branch-selector');
-            selector.innerHTML = branchList.map(b => `<option value="${b}" ${b === branchName ? 'selected' : ''}>📍 ${b}</option>`).join('');
-            document.getElementById('display-branch-title').innerText = branchName;
-            document.getElementById('branch-display-receipt').innerText = branchName;
-        }
-
         function updateUI() {
-            const list = document.getElementById('cart-items'); 
-            let total = 0;
+            const list = document.getElementById('cart-items'); let total = 0;
             list.innerHTML = cart.map((item, idx) => {
                 const sum = item.price * item.qty; total += sum;
                 return `<div class="flex justify-between items-center border-b border-slate-50 py-1">
                     <div class="text-left"><p class="text-[10px] font-bold">${item.name}</p><p class="text-[8px] text-slate-400">${item.price} x ${item.qty}</p></div>
-                    <span class="font-bold text-xs">${sum.toLocaleString()}.-</span>
+                    <div class="flex items-center gap-2"><span class="font-bold text-xs">${sum.toLocaleString()}.-</span><button onclick="openEdit(${idx})" class="w-5 h-5 bg-slate-50 text-slate-400 rounded flex items-center justify-center print-hidden"><i class="fas fa-pen text-[7px]"></i></button></div>
                 </div>`;
             }).join('');
-
             const disc = parseFloat(document.getElementById('discount-input').value) || 0;
             let final = Math.max(0, total - (discountType === 'percent' ? (total * disc / 100) : disc));
             document.getElementById('total-price').innerText = Math.round(final).toLocaleString();
             document.getElementById('cur-date').innerText = new Date().toLocaleString('th-TH');
             document.getElementById('receipt-address').innerText = shopAddress;
-
             const qr = document.getElementById('bill-qr-container');
             qr.innerHTML = (final > 0 && promptpayID) ? `<img src="https://promptpay.io/${promptpayID}/${final}.png" class="mx-auto w-24">` : '';
         }
@@ -212,13 +181,16 @@
                 const head = document.createElement('div'); head.className = 'category-header'; head.innerText = c; grid.appendChild(head);
                 menuItems.filter(i => i.cat === c).forEach(item => {
                     const card = document.createElement('div'); card.className = 'menu-card shadow-sm'; card.onclick = () => addToCart(item);
-                    card.innerHTML = `<span class="text-3xl mb-2">${item.icon}</span><span class="text-[10px] font-bold text-center h-6">${item.name}</span><span class="text-green-700 font-black mt-1">${item.price}.-</span>`;
+                    card.innerHTML = `${item.isWeight?'<span class="weight-tag">ชั่ง กก.</span>':''}<span class="text-3xl mb-2">${item.icon}</span><span class="text-[10px] font-bold text-center leading-tight h-6">${item.name}</span><span class="text-green-700 font-black mt-1">${item.price}.-</span>`;
                     grid.appendChild(card);
                 });
             });
         }
 
-        function addToCart(i) { const x=cart.findIndex(c=>c.name===i.name); if(x>-1) cart[x].qty++; else cart.push({...i,qty:1}); updateUI(); }
+        function addToCart(i) { const x=cart.findIndex(c=>c.name===i.name); if(x>-1) cart[x].qty++; else cart.push({...i,qty:1}); updateUI(); if(i.isWeight) openEdit(cart.findIndex(c=>c.name===i.name)); }
+        function openEdit(x) { editingIdx=x; document.getElementById('edit-title').innerText=cart[x].name; document.getElementById('edit-input').value=cart[x].qty; document.getElementById('edit-modal').style.display='flex'; document.getElementById('edit-input').select(); }
+        function confirmEdit() { const v=parseFloat(document.getElementById('edit-input').value); if(v>=0){ if(v===0)cart.splice(editingIdx,1); else cart[editingIdx].qty=v; closeEdit(); updateUI(); } }
+        function closeEdit() { document.getElementById('edit-modal').style.display='none'; }
         function openAdmin() { document.getElementById('admin-modal').style.display='flex'; document.getElementById('pp-id-input').value=promptpayID; document.getElementById('address-input').value=shopAddress; renderAdminLists(); }
         function closeAdmin() { document.getElementById('admin-modal').style.display='none'; }
         function changeBranch(v) { branchName=v; localStorage.setItem('selected_branch',v); updateBranchOptions(); updateUI(); }
@@ -226,7 +198,8 @@
         function clearCart() { cart=[]; document.getElementById('discount-input').value=0; updateUI(); }
         function updateQueueDisplay() { const s=orderQ.toString().padStart(2,'0'); document.getElementById('next-q').innerText='#'+s; document.getElementById('receipt-q').innerText=s; localStorage.setItem('garden_order_q',orderQ); }
         function toggleDiscountType(t) { discountType=t; document.getElementById('btn-baht').className=`px-2 text-[9px] font-bold ${t==='baht'?'bg-slate-800 text-white':'text-slate-400'}`; document.getElementById('btn-percent').className=`px-2 text-[9px] font-bold ${t==='percent'?'bg-slate-800 text-white':'text-slate-400'}`; updateUI(); }
-        function addNewMenuItem() { menuItems.push({name:'สินค้าใหม่',price:0,cat:'ทั่วไป',icon:'✨'}); renderAdminLists(); }
+        function addNewMenuItem() { menuItems.push({name:'สินค้าใหม่',price:0,cat:'ทั่วไป',icon:'✨',isWeight:false}); renderAdminLists(); }
+        function updateBranchOptions() { const selector = document.getElementById('branch-selector'); selector.innerHTML = branchList.map(b => `<option value="${b}" ${b === branchName ? 'selected' : ''}>📍 ${b}</option>`).join(''); document.getElementById('display-branch-title').innerText = branchName; document.getElementById('branch-display-receipt').innerText = branchName; }
 
         async function handleCheckout() { 
             if(cart.length===0) return; window.print(); 
