@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>สวนหน้าบ้าน 🌿</title>
+    <title>Saun Na Baan 🌿</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;600&display=swap" rel="stylesheet">
@@ -29,10 +29,11 @@
             { name: 'ยอด 400g (ชุด 3 ถุง)', price: 100, cat: 'ยอดมะพร้าว (ถุง)', icon: '📦' },
             { name: 'ยอด 500g', price: 60, cat: 'ยอดมะพร้าว (ถุง)', icon: '🥥' }
         ];
-        let branchList = JSON.parse(localStorage.getItem('garden_branches')) || ["สาขา 05"];
-        let branchName = localStorage.getItem('selected_branch') || branchList[0];
-        let shopAddress = localStorage.getItem('shop_address') || "กรุณากรอกที่อยู่ร้าน";
+        let branchList = JSON.parse(localStorage.getItem('garden_branches')) || ["สาขา 01", "สาขา 02", "สาขา 03", "สาขา 04", "สาขา 05"];
+        let branchName = localStorage.getItem('selected_branch') || branchList[4];
+        let shopAddress = localStorage.getItem('shop_address') || "ณ Coco - สดจากสวน";
         let shopLogoData = localStorage.getItem('shop_logo_data') || "";
+        let promptpayID = localStorage.getItem('garden_pp_id') || ""; // เก็บเบอร์ PromptPay
         let orderQ = parseInt(localStorage.getItem('garden_order_q')) || 1; 
         
         let cart = []; 
@@ -63,6 +64,10 @@
                 <button onclick="closeAdmin()" class="text-2xl text-slate-400">&times;</button>
             </div>
             <div class="space-y-4 max-h-[60vh] overflow-y-auto pr-2">
+                <div class="bg-blue-50 p-4 rounded-2xl border border-blue-100">
+                    <label class="text-[10px] font-bold text-blue-600 uppercase mb-2 block italic">ระบบชำระเงิน (PromptPay)</label>
+                    <input type="text" id="pp-id-input" placeholder="เบอร์โทร หรือ เลขบัตรประชาชน" class="w-full p-2 bg-white border rounded-lg text-xs font-bold text-blue-800 outline-none" value="">
+                </div>
                 <div class="bg-green-50 p-4 rounded-2xl border border-green-100">
                     <label class="text-[10px] font-bold text-green-600 uppercase mb-2 block">โลโก้และที่อยู่</label>
                     <div class="flex items-center gap-4 mb-3">
@@ -85,6 +90,19 @@
                 </div>
             </div>
             <button onclick="saveSettings()" class="w-full bg-green-800 text-white py-4 rounded-2xl font-bold mt-6 shadow-lg hover:bg-green-700">บันทึกทั้งหมด</button>
+        </div>
+    </div>
+
+    <div id="qr-modal" class="modal print-hidden" onclick="this.style.display='none'">
+        <div class="bg-white p-8 rounded-[40px] text-center shadow-2xl m-6" onclick="event.stopPropagation()">
+            <h3 class="font-black text-green-900 mb-4 tracking-tight text-xl">SCAN TO PAY</h3>
+            <div id="qr-container" class="bg-white p-4 rounded-3xl border-4 border-slate-100 mb-4 inline-block shadow-inner">
+                </div>
+            <div class="space-y-1">
+                <p class="text-3xl font-black text-slate-900"><span id="qr-total-display">0</span>.-</p>
+                <p class="text-[10px] text-slate-400 font-bold uppercase tracking-widest">PromptPay QR Code</p>
+            </div>
+            <button onclick="document.getElementById('qr-modal').style.display='none'" class="mt-6 text-slate-300 font-bold uppercase text-[10px] tracking-widest hover:text-red-500">ปิดหน้าจอ</button>
         </div>
     </div>
 
@@ -113,7 +131,7 @@
         <div id="receipt-area" class="w-1/3 bg-white shadow-2xl flex flex-col border-l">
             <div class="p-6 text-center border-b border-dashed border-slate-200 flex flex-col items-center">
                 <img id="receipt-logo-img" src="" class="hidden mb-2" alt="Logo">
-                <h2 class="font-black text-green-900 text-[18px] uppercase mb-1">Suan Na Baan</h2>
+                <h2 class="font-black text-green-900 text-[18px] uppercase mb-1">Saun Na Baan</h2>
                 <p id="receipt-address" class="text-[9px] text-slate-500 leading-tight mb-2 whitespace-pre-line"></p>
                 <div class="w-full border-t border-slate-100 pt-2">
                     <p class="font-bold text-slate-800 text-[10px]">RECEIPT / BRANCH: <span id="branch-display-receipt"></span></p>
@@ -139,8 +157,13 @@
                         <span>-<span id="display-discount-baht">0</span>.-</span>
                     </div>
                     <div class="flex justify-between items-end">
-                        <span class="text-slate-400 font-bold text-xs uppercase">ยอดสุทธิ</span>
-                        <span class="text-4xl font-black text-green-900"><span id="total-price">0</span>.-</span>
+                        <button onclick="showQR()" class="w-12 h-12 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center shadow-sm hover:bg-blue-100 transition-colors print-hidden">
+                            <i class="fas fa-qrcode text-xl"></i>
+                        </button>
+                        <div class="text-right">
+                            <span class="text-slate-400 font-bold text-xs uppercase block">ยอดสุทธิ</span>
+                            <span class="text-4xl font-black text-green-900"><span id="total-price">0</span>.-</span>
+                        </div>
                     </div>
                 </div>
 
@@ -152,8 +175,7 @@
         </div>
     </div>
 
-    <div id="edit-modal" class="modal print-hidden"><div class="bg-white p-6 rounded-3xl w-80 shadow-2xl text-center"><h3 id="edit-title" class="font-bold mb-2">แก้ไขจำนวน</h3><input type="number" id="edit-input" class="w-full p-4 text-3xl font-black text-center bg-slate-100 rounded-2xl outline-none"><div class="grid grid-cols-2 gap-3 mt-6"><button onclick="closeEdit()" class="py-3 bg-slate-100 rounded-xl font-bold">ยกเลิก</button><button onclick="confirmEdit()" class="py-3 bg-green-700 text-white rounded-xl font-bold">ตกลง</button></div><button onclick="deleteItem()" class="w-full py-3 bg-red-50 text-red-500 rounded-xl font-bold mt-3 text-xs"><i class="fas fa-trash"></i> ลบรายการนี้</button></div></div>
-    <div id="weigh-modal" class="modal print-hidden"><div class="bg-white p-6 rounded-3xl w-80 shadow-2xl text-center"><h3 id="weigh-title" class="font-bold mb-4 text-green-800">ระบุราคา</h3><input type="number" id="weigh-input" class="w-full p-4 text-3xl font-black text-center bg-slate-100 rounded-2xl outline-none"><div class="grid grid-cols-2 gap-3 mt-4"><button onclick="closeWeigh()" class="py-3 bg-slate-100 rounded-xl font-bold">ยกเลิก</button><button onclick="confirmWeigh()" class="py-3 bg-green-800 text-white rounded-xl font-bold">ตกลง</button></div></div></div>
+    <div id="edit-modal" class="modal print-hidden"><div class="bg-white p-6 rounded-3xl w-80 shadow-2xl text-center"><h3 id="edit-title" class="font-bold mb-2 text-green-900">แก้ไขจำนวน</h3><input type="number" id="edit-input" class="w-full p-4 text-3xl font-black text-center bg-slate-100 rounded-2xl outline-none text-green-800"><div class="grid grid-cols-2 gap-3 mt-6"><button onclick="closeEdit()" class="py-3 bg-slate-100 rounded-xl font-bold">ยกเลิก</button><button onclick="confirmEdit()" class="py-3 bg-green-700 text-white rounded-xl font-bold">ตกลง</button></div><button onclick="deleteItem()" class="w-full py-3 bg-red-50 text-red-500 rounded-xl font-bold mt-3 text-xs"><i class="fas fa-trash"></i> ลบรายการนี้</button></div></div>
 
     <script>
         function updateBranchOptions() {
@@ -161,6 +183,18 @@
             selector.innerHTML = branchList.map(b => `<option value="${b}" ${b === branchName ? 'selected' : ''}>📍 ${b}</option>`).join('');
             document.getElementById('display-branch-title').innerText = branchName;
             document.getElementById('branch-display-receipt').innerText = branchName;
+        }
+
+        function showQR() {
+            const total = document.getElementById('total-price').innerText.replace(',','');
+            if(total == "0") return alert("กรุณาเลือกสินค้า");
+            if(!promptpayID) return alert("กรุณาตั้งค่าเบอร์ PromptPay ในหน้า Setting ก่อนครับ");
+            
+            // ใช้ API สำหรับสร้าง QR PromptPay
+            const qrUrl = `https://promptpay.io/${promptpayID}/${total}.png`;
+            document.getElementById('qr-container').innerHTML = `<img src="${qrUrl}" class="w-48 h-48" alt="PromptPay QR">`;
+            document.getElementById('qr-total-display').innerText = total;
+            document.getElementById('qr-modal').style.display = 'flex';
         }
 
         function setDiscountType(type) {
@@ -183,6 +217,7 @@
 
         function openAdmin() {
             document.getElementById('admin-modal').style.display = 'flex';
+            document.getElementById('pp-id-input').value = promptpayID;
             document.getElementById('address-input').value = shopAddress;
             if(shopLogoData) document.getElementById('logo-preview-admin').innerHTML = `<img src="${shopLogoData}" class="w-full h-full object-contain">`;
             renderAdminLists();
@@ -190,6 +225,8 @@
 
         function saveSettings() {
             try {
+                promptpayID = document.getElementById('pp-id-input').value;
+                localStorage.setItem('garden_pp_id', promptpayID);
                 localStorage.setItem('garden_menu', JSON.stringify(menuItems));
                 localStorage.setItem('garden_branches', JSON.stringify(branchList));
                 localStorage.setItem('shop_address', document.getElementById('address-input').value);
@@ -264,7 +301,6 @@
             let calcDisc = (discountType === 'percent') ? (subtotal * discountValue / 100) : discountValue;
             const finalAmount = Math.round(subtotal - calcDisc);
             
-            // เตรียมข้อมูลตาม IMG_2329
             const payload = { 
                 date: new Date().toLocaleString('th-TH'), 
                 branch: branchName,
