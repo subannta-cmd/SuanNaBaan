@@ -186,22 +186,31 @@
         function closeEdit() { document.getElementById('edit-modal').style.display = 'none'; }
 
         function updateUI() {
-            const list = document.getElementById('cart-items'); let total = 0;
-            list.innerHTML = cart.map((item, idx) => {
-                const sum = item.price * item.qty; total += sum;
-                return `<div class="flex justify-between items-center border-b border-slate-50 py-1">
-                    <div class="text-left"><p class="text-[10px] font-bold">${item.name}</p><p class="text-[8px] text-slate-400">${item.price} x ${item.qty}</p></div>
-                    <div class="flex items-center gap-2"><span class="font-bold text-xs">${sum.toLocaleString()}.-</span><button onclick="openEdit(${idx})" class="w-5 h-5 bg-slate-50 text-slate-400 rounded flex items-center justify-center print-hidden"><i class="fas fa-pen text-[7px]"></i></button></div>
-                </div>`;
-            }).join('');
-            const disc = parseFloat(document.getElementById('discount-input').value) || 0;
-            let final = Math.max(0, total - (discountType === 'percent' ? (total * disc / 100) : disc));
-            document.getElementById('total-price').innerText = Math.round(final).toLocaleString();
-            document.getElementById('cur-date').innerText = new Date().toLocaleString('th-TH');
-            document.getElementById('receipt-address').innerText = shopAddress;
-            const qr = document.getElementById('bill-qr-container');
-            qr.innerHTML = (final > 0 && promptpayID) ? `<img src="https://promptpay.io/${promptpayID}/${final}.png" class="mx-auto w-24">` : '';
-        }
+    const list = document.getElementById('cart-items'); 
+    let total = 0;
+    list.innerHTML = cart.map((item, idx) => {
+        const sum = item.price * item.qty; total += sum;
+        return `<div class="flex justify-between items-center border-b border-slate-50 py-1">
+            <div class="text-left"><p class="text-[10px] font-bold">${item.name}</p><p class="text-[8px] text-slate-400">${item.price} x ${item.qty}</p></div>
+            <div class="flex items-center gap-2"><span class="font-bold text-xs">${sum.toLocaleString()}.-</span><button onclick="openEdit(${idx})" class="w-5 h-5 bg-slate-50 text-slate-400 rounded flex items-center justify-center print-hidden"><i class="fas fa-pen text-[7px]"></i></button></div>
+        </div>`;
+    }).join('');
+
+    const disc = parseFloat(document.getElementById('discount-input').value) || 0;
+    
+    // --- จุดที่ต้องแก้ไข ---
+    let rawFinal = total - (discountType === 'percent' ? (total * disc / 100) : disc);
+    let final = Math.max(0, Math.round(rawFinal)); // บังคับปัดเศษเป็นจำนวนเต็มตรงนี้เลย
+    // --------------------
+
+    document.getElementById('total-price').innerText = final.toLocaleString(); // แสดงผลยอดที่ปัดเศษแล้ว
+    document.getElementById('cur-date').innerText = new Date().toLocaleString('th-TH');
+    document.getElementById('receipt-address').innerText = shopAddress;
+
+    const qr = document.getElementById('bill-qr-container');
+    // ตอนส่งไปสร้าง QR Code ก็จะใช้ค่า final ที่ปัดเศษแล้ว (63 บาท) เท่ากันทั้งบิลและแอปธนาคารครับ
+    qr.innerHTML = (final > 0 && promptpayID) ? `<img src="https://promptpay.io/${promptpayID}/${final}.png" class="mx-auto w-24">` : '';
+}
 
         async function handleCheckout() { 
             if(cart.length===0) return; window.print(); 
