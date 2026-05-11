@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Suan Na Baan POS 🥥</title>
+    <title>Suan Na Baan POS & Profit 🥥</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;600&display=swap" rel="stylesheet">
@@ -19,18 +19,15 @@
         .receipt-q-text { font-size: 2.2rem; line-height: 1; font-weight: 900; color: #1e293b; margin: 0.1rem 0; }
         .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 100; align-items: center; justify-content: center; backdrop-filter: blur(4px); }
         .weight-tag { position: absolute; top: 6px; right: 6px; font-size: 8px; background: #dcfce7; color: #166534; padding: 1px 6px; border-radius: 8px; font-weight: bold; }
-        @media (max-width: 950px) {
-            .main-container { flex-direction: column; overflow-y: auto; height: auto; }
-            .menu-side { width: 100%; height: auto; flex: none; }
-            .receipt-side { width: 100%; height: auto; border-left: 0; border-top: 2px solid #f1f5f9; flex: none; }
-        }
+        @media (max-width: 950px) { .main-container { flex-direction: column; overflow-y: auto; height: auto; } .menu-side { width: 100%; height: auto; flex: none; } .receipt-side { width: 100%; height: auto; border-left: 0; border-top: 2px solid #f1f5f9; flex: none; } }
         @media print { .print-hidden { display: none !important; } .receipt-side { width: 100% !important; position: absolute; top: 0; left: 0; } }
     </style>
 </head>
 <body class="text-slate-700">
 
     <script>
-        const scriptURL = 'https://script.google.com/macros/s/AKfycby_03FB3yaccRhxfVq2Y9ahDxs_J-eUdEqVs0LYmQRtGqNY3DDoTh3GqLmHQGpahYMf/exec'; 
+        // กำหนด URL ของ Google Apps Script ที่คุณใช้งาน
+        const scriptURL = 'https://script.google.com/macros/s/AKfycbwILWv-8XAg4h0AH9O5TxWXUrELAGMVE2Te14SmyS9E_IOCk_OPS5gz_g0GIRVgZU0KXQ/exec'; 
         
         const defaultMenu = [
             { name: 'ยอด 200g (ชุด 3 ถุง)', price: 50, cat: 'ยอดมะพร้าว (ถุง)', icon: '📦', isWeight: false },
@@ -52,10 +49,7 @@
         let shopAddress = localStorage.getItem('shop_address') || "ณ Coco - สดจากสวน โทร 0966697979";
         let promptpayID = localStorage.getItem('garden_pp_id') || "0966697979"; 
         let orderQ = parseInt(localStorage.getItem('garden_order_q')) || 1; 
-        
-        let cart = []; 
-        let discountType = 'percent'; 
-        let editingIdx = -1;
+        let cart = []; let discountType = 'percent'; let editingIdx = -1;
     </script>
 
     <div class="main-container">
@@ -63,11 +57,11 @@
             <div class="flex flex-wrap justify-between items-center mb-6 gap-3">
                 <div class="flex items-center gap-3">
                     <h1 class="text-xl font-black text-slate-800" id="display-branch-title"></h1>
-                    <select id="branch-selector" onchange="changeBranch(this.value)" class="text-[10px] font-bold text-green-600 bg-green-50 px-2 py-1 rounded-lg border-none"></select>
+                    <select id="branch-selector" onchange="changeBranch(this.value)" class="text-[10px] font-bold text-green-600 bg-green-50 px-2 py-1 rounded-lg border-none outline-none"></select>
                 </div>
                 <div class="flex items-center gap-2">
-                    <button onclick="openAdmin()" class="w-10 h-10 bg-white border rounded-xl text-slate-400"><i class="fas fa-cog"></i></button>
-                    <div class="flex items-center bg-white border rounded-xl p-1 h-10">
+                    <button onclick="openAdmin()" class="w-10 h-10 bg-white border rounded-xl text-slate-400 shadow-sm hover:text-slate-600 transition-all"><i class="fas fa-cog"></i></button>
+                    <div class="flex items-center bg-white border rounded-xl p-1 h-10 shadow-sm">
                         <button onclick="resetQueue()" class="w-8 h-8 flex items-center justify-center text-green-600"><i class="fas fa-sync-alt text-[10px]"></i></button>
                         <div class="px-3 font-black text-green-700 text-lg" id="next-q">#01</div>
                     </div>
@@ -86,9 +80,12 @@
                     <p id="cur-date" class="text-[8px] text-slate-300 italic"></p>
                 </div>
             </div>
+            
             <div id="cart-items" class="flex-grow overflow-y-auto p-4 space-y-1"></div>
+            
             <div class="p-6 bg-white border-t space-y-3">
                 <div id="bill-qr-container" class="text-center"></div>
+                
                 <div class="flex justify-between items-center bg-slate-50 p-1.5 rounded-lg print-hidden">
                     <span class="text-[9px] font-bold text-slate-400 ml-2">ส่วนลด</span>
                     <div class="flex items-center gap-1">
@@ -96,13 +93,15 @@
                             <button onclick="toggleDiscountType('baht')" id="btn-baht" class="px-2 text-[9px] font-bold">฿</button>
                             <button onclick="toggleDiscountType('percent')" id="btn-percent" class="px-2 text-[9px] font-bold bg-slate-800 text-white">%</button>
                         </div>
-                        <input type="number" id="discount-input" oninput="updateUI()" value="0" class="w-12 h-6 text-right border rounded px-1 font-bold text-red-500 text-xs">
+                        <input type="number" id="discount-input" oninput="updateUI()" value="0" class="w-12 h-6 text-right border rounded px-1 font-bold text-red-500 text-xs outline-none">
                     </div>
                 </div>
+                
                 <div class="flex justify-between items-center">
                     <span class="text-slate-400 font-bold text-[10px]">ยอดสุทธิ</span>
                     <span class="text-3xl font-black text-slate-800"><span id="total-price">0</span>.-</span>
                 </div>
+                
                 <div class="grid grid-cols-4 gap-2 print-hidden">
                     <button onclick="clearCart()" class="py-3 bg-slate-50 text-slate-400 rounded-xl font-bold text-xs">ล้าง</button>
                     <button onclick="handleCheckout()" class="col-span-3 py-3 bg-green-700 text-white rounded-xl font-black text-md">พิมพ์บิล</button>
@@ -113,100 +112,164 @@
 
     <div id="admin-modal" class="modal print-hidden">
         <div class="bg-white rounded-[2rem] w-full max-w-lg p-6 shadow-2xl m-4 max-h-[90vh] flex flex-col">
-            <div class="flex justify-between items-center mb-4"><h2 class="text-lg font-bold">⚙️ ตั้งค่าระบบ</h2><button onclick="closeAdmin()" class="text-slate-400 text-2xl">&times;</button></div>
+            <div class="flex justify-between items-center mb-4 text-slate-800">
+                <h2 class="text-lg font-bold">⚙️ Dashboard <span id="admin-branch-name"></span></h2>
+                <button onclick="closeAdmin()" class="text-slate-400 text-2xl">&times;</button>
+            </div>
+            
             <div class="flex-grow overflow-y-auto pr-2 space-y-4">
+                <div class="grid grid-cols-2 gap-3">
+                    <div class="bg-green-700 p-4 rounded-3xl text-white shadow-lg text-center">
+                        <p class="text-[10px] font-bold uppercase opacity-80 mb-1">ยอดขายวันนี้</p>
+                        <p id="daily-total-display" class="text-2xl font-black">0</p>
+                    </div>
+                    <div class="bg-orange-500 p-4 rounded-3xl text-white shadow-lg text-center">
+                        <p class="text-[10px] font-bold uppercase opacity-80 mb-1">รายจ่ายวันนี้</p>
+                        <p id="daily-exp-display" class="text-2xl font-black">0</p>
+                    </div>
+                </div>
                 
-                <div class="bg-green-700 p-4 rounded-3xl text-white shadow-lg shadow-green-100">
-                    <div class="flex justify-between items-center mb-2">
-                        <span class="text-[10px] font-bold uppercase opacity-80">ยอดขายวันนี้ (สาขานี้)</span>
-                        <i class="fas fa-chart-line"></i>
+                <div class="bg-slate-800 p-4 rounded-3xl text-white flex justify-between items-center">
+                    <div>
+                        <p class="text-[10px] font-bold uppercase opacity-60">คงเหลือสุทธิ (Profit)</p>
+                        <p id="daily-net-display" class="text-3xl font-black text-green-400">0</p>
                     </div>
-                    <div class="flex items-baseline gap-1">
-                        <span id="daily-total-display" class="text-3xl font-black">0</span>
-                        <span class="text-sm font-bold">บาท</span>
-                    </div>
-                    <div class="flex justify-between items-center mt-2">
-                        <div id="last-update" class="text-[8px] opacity-60 italic">อัปเดต: -</div>
-                        <button onclick="voidLastSale()" class="text-[10px] bg-red-500 hover:bg-red-600 px-3 py-1 rounded-full font-bold transition-colors">
-                            <i class="fas fa-undo mr-1"></i> ลดยอดล่าสุด
-                        </button>
-                    </div>
+                    <button onclick="addExpense()" class="bg-orange-400 hover:bg-orange-500 text-white px-4 py-2 rounded-2xl font-bold text-xs shadow-md transition-all">
+                        <i class="fas fa-minus-circle mr-1"></i> บันทึกรายจ่าย
+                    </button>
+                </div>
+
+                <div class="bg-white border-2 border-slate-100 p-1 rounded-2xl">
+                    <button onclick="dailyCloseReport()" class="w-full bg-slate-900 text-white py-4 rounded-xl font-black shadow-lg hover:bg-black transition-all">
+                        <i class="fas fa-cloud-upload-alt mr-2 text-yellow-400"></i> ส่งยอดปิดวันเข้า Google Sheets
+                    </button>
                 </div>
 
                 <div class="bg-slate-50 p-4 rounded-2xl border border-slate-100">
-                    <h3 class="text-[10px] font-bold text-slate-400 uppercase mb-3"><i class="fas fa-history mr-1"></i> ประวัติยอดขาย 7 วันล่าสุด</h3>
-                    <div id="history-list" class="space-y-2">
-                        </div>
+                    <h3 class="text-[10px] font-bold text-slate-400 uppercase mb-3"><i class="fas fa-history mr-1"></i> ประวัติ 7 วันล่าสุด</h3>
+                    <div id="history-list" class="space-y-2"></div>
                 </div>
 
-                <div class="bg-slate-50 p-3 rounded-xl border">
+                <div class="bg-slate-50 p-3 rounded-xl border space-y-2">
                     <div class="grid grid-cols-2 gap-2">
-                        <input type="text" id="pp-id-input" placeholder="พร้อมเพย์" class="p-2 border rounded-lg text-sm">
-                        <input type="text" id="address-input" placeholder="ชื่อร้าน/ที่อยู่" class="p-2 border rounded-lg text-sm">
+                        <input type="text" id="pp-id-input" placeholder="พร้อมเพย์" class="p-2 border rounded-lg text-sm outline-none">
+                        <input type="text" id="address-input" placeholder="ที่อยู่ร้าน" class="p-2 border rounded-lg text-sm outline-none">
                     </div>
+                    <div id="branch-edit-list" class="grid grid-cols-2 gap-2"></div>
                 </div>
 
-                <div id="branch-edit-list" class="grid grid-cols-2 gap-2"></div>
-                
                 <div class="border-t pt-4">
-                    <div class="flex justify-between items-center mb-2"><label class="text-[10px] font-bold text-slate-400 uppercase">รายการสินค้า</label><button onclick="addNewMenuItem()" class="text-[10px] bg-green-600 text-white px-3 py-1 rounded-full">+ เพิ่มสินค้า</button></div>
+                    <div class="flex justify-between items-center mb-2">
+                        <label class="text-[10px] font-bold text-slate-400 uppercase">แก้ไขสินค้า</label>
+                        <button onclick="addNewMenuItem()" class="text-[10px] bg-green-600 text-white px-3 py-1 rounded-full">+ เพิ่ม</button>
+                    </div>
                     <div id="admin-menu-list" class="space-y-2"></div>
                 </div>
             </div>
-            <button onclick="saveSettings()" class="w-full bg-green-700 text-white py-3 rounded-xl font-bold mt-4">บันทึกข้อมูลเครื่องนี้</button>
+            <button onclick="saveSettings()" class="w-full bg-green-700 text-white py-3 rounded-xl font-bold mt-4 shadow-lg">บันทึกตั้งค่าเครื่องนี้</button>
+        </div>
+    </div>
+
+    <div id="exp-modal" class="modal print-hidden">
+        <div class="bg-white p-6 rounded-[2rem] w-80 shadow-2xl text-center">
+            <h3 class="font-bold text-lg mb-4 text-slate-800">บันทึกรายจ่าย 💸</h3>
+            <div class="space-y-3">
+                <select id="exp-cat" class="w-full p-2 border rounded-xl text-sm outline-none bg-slate-50">
+                    <option value="ค่าซื้อถุง">🛍️ ค่าซื้อถุง</option>
+                    <option value="ค่าเช่าที่">🏠 ค่าเช่าที่</option>
+                    <option value="ค่าน้ำแข็ง">🧊 ค่าน้ำแข็ง</option>
+                    <option value="ค่าของสด/มะพร้าว">🥥 ค่าของสด/มะพร้าว</option>
+                    <option value="ค่าแรง/เบี้ยเลี้ยง">👤 ค่าแรง/เบี้ยเลี้ยง</option>
+                    <option value="อื่นๆ">📝 อื่นๆ (ระบุเอง)</option>
+                </select>
+                <input type="text" id="exp-note" placeholder="ระบุรายละเอียดเพิ่มเติม" class="w-full p-2 border rounded-xl text-sm outline-none">
+                <input type="number" id="exp-amt" placeholder="จำนวนเงิน (บาท)" class="w-full p-3 text-2xl font-black text-center bg-green-50 rounded-xl outline-none text-green-700">
+            </div>
+            <div class="grid grid-cols-2 gap-2 mt-6">
+                <button onclick="document.getElementById('exp-modal').style.display='none'" class="py-3 bg-slate-100 rounded-xl font-bold text-slate-400 text-sm">ยกเลิก</button>
+                <button onclick="confirmAddExpense()" class="py-3 bg-orange-500 text-white rounded-xl font-bold text-sm">บันทึก</button>
+            </div>
         </div>
     </div>
 
     <div id="edit-modal" class="modal print-hidden">
         <div class="bg-white p-6 rounded-[2rem] w-72 shadow-2xl text-center">
-            <h3 id="edit-title" class="font-bold text-sm mb-3">ใส่จำนวน / น้ำหนัก (กก.)</h3>
-            <input type="number" step="0.01" id="edit-input" class="w-full p-3 text-3xl font-black text-center bg-slate-50 rounded-2xl outline-none text-green-700">
+            <h3 id="edit-title" class="font-bold text-sm mb-3 text-slate-500">ระบุจำนวน</h3>
+            <input type="number" step="0.01" id="edit-input" class="w-full p-3 text-4xl font-black text-center bg-slate-50 rounded-2xl outline-none text-slate-800">
             <div class="grid grid-cols-2 gap-2 mt-6">
                 <button onclick="closeEdit()" class="py-3 bg-slate-100 rounded-xl font-bold text-slate-400">ยกเลิก</button>
-                <button onclick="confirmEdit()" class="py-3 bg-green-700 text-white rounded-xl font-bold">ตกลง</button>
+                <button id="confirm-btn" class="py-3 bg-green-700 text-white rounded-xl font-bold">ตกลง</button>
             </div>
         </div>
     </div>
 
     <script>
-        // --- ฟังก์ชันแสดงประวัติย้อนหลัง ---
-        function renderHistory() {
-            const container = document.getElementById('history-list');
-            container.innerHTML = '';
-            
-            // วนลูปย้อนหลัง 7 วัน (ไม่รวมวันนี้)
-            for (let i = 1; i <= 7; i++) {
-                const d = new Date();
-                d.setDate(d.getDate() - i);
-                const dateStr = d.toLocaleDateString('th-TH');
-                const key = `sale_${branchName}_${dateStr}`;
-                const amount = parseFloat(localStorage.getItem(key)) || 0;
-
-                if(amount > 0) {
-                    const row = document.createElement('div');
-                    row.className = 'flex justify-between items-center p-2 bg-white rounded-lg border border-slate-100 text-[11px]';
-                    row.innerHTML = `
-                        <span class="text-slate-500 font-medium">${dateStr}</span>
-                        <span class="font-bold text-slate-800">${amount.toLocaleString()}.-</span>
-                    `;
-                    container.appendChild(row);
-                }
-            }
-
-            if(container.innerHTML === '') {
-                container.innerHTML = '<p class="text-[10px] text-slate-300 text-center py-2">ยังไม่มีประวัติยอดขาย</p>';
-            }
+        // --- ระบบบันทึกรายจ่าย ---
+        function addExpense() {
+            document.getElementById('exp-modal').style.display = 'flex';
+            document.getElementById('exp-amt').value = '';
+            document.getElementById('exp-note').value = '';
         }
 
-        // --- ฟังก์ชันหลัก ---
+        function confirmAddExpense() {
+            const cat = document.getElementById('exp-cat').value;
+            const note = document.getElementById('exp-note').value;
+            const amt = parseFloat(document.getElementById('exp-amt').value);
+            if (amt > 0) {
+                const today = new Date().toLocaleDateString('th-TH');
+                const expKey = `exp_${branchName}_${today}`;
+                const currentExp = parseFloat(localStorage.getItem(expKey)) || 0;
+                localStorage.setItem(expKey, currentExp + amt);
+                
+                // บันทึก Logs รายละเอียดรายจ่าย
+                const logs = JSON.parse(localStorage.getItem(`exp_logs_${branchName}_${today}`)) || [];
+                logs.push({ time: new Date().toLocaleTimeString('th-TH'), category: cat, note: note, amount: amt });
+                localStorage.setItem(`exp_logs_${branchName}_${today}`, JSON.stringify(logs));
+
+                document.getElementById('exp-modal').style.display = 'none';
+                refreshDailySale();
+                renderHistory();
+            } else { alert("กรุณาระบุจำนวนเงิน"); }
+        }
+
+        // --- ระบบปิดยอดวันส่งเข้า Google Sheets ---
+        async function dailyCloseReport() {
+            const today = new Date().toLocaleDateString('th-TH');
+            const sale = parseFloat(localStorage.getItem(`sale_${branchName}_${today}`)) || 0;
+            const exp = parseFloat(localStorage.getItem(`exp_${branchName}_${today}`)) || 0;
+            
+            if (sale === 0 && exp === 0) { alert("ไม่มีข้อมูลยอดขายหรือรายจ่ายในวันนี้"); return; }
+            if (!confirm(`ยืนยันการส่งรายงานปิดยอด\nสาขา: ${branchName}\nยอดขาย: ${sale}\nรายจ่าย: ${exp}\nกำไรสุทธิ: ${sale-exp}`)) return;
+
+            const logs = JSON.parse(localStorage.getItem(`exp_logs_${branchName}_${today}`)) || [];
+            const expenseDetail = logs.map(l => `${l.category}${l.note?':'+l.note:''}(${l.amount})`).join(', ');
+
+            const reportData = {
+                type: "DAILY_CLOSE",
+                date: today,
+                branch: branchName,
+                totalSales: sale,
+                totalExpense: exp,
+                netProfit: sale - exp,
+                expenseNote: expenseDetail
+            };
+
+            try {
+                // ส่งข้อมูลเข้า Google Apps Script
+                await fetch(scriptURL, { method: 'POST', mode: 'no-cors', body: JSON.stringify(reportData) });
+                alert("🎉 ส่งข้อมูลปิดยอดของ " + branchName + " เรียบร้อยแล้ว!");
+            } catch (error) { alert("เกิดข้อผิดพลาดในการส่งข้อมูล"); }
+        }
+
+        // --- ฟังก์ชันเสริมและระบบ POS เดิม ---
         function renderMenu() {
             const grid = document.getElementById('menu-grid'); grid.innerHTML = '';
             const cats = [...new Set(menuItems.map(i => i.cat))];
             cats.forEach(c => {
                 const head = document.createElement('div'); head.className = 'category-header'; head.innerText = c; grid.appendChild(head);
                 menuItems.filter(i => i.cat === c).forEach(item => {
-                    const card = document.createElement('div'); card.className = 'menu-card shadow-sm'; card.onclick = () => addToCart(item);
-                    card.innerHTML = `${item.isWeight?'<span class="weight-tag">ชั่ง กก.</span>':''}<span class="text-3xl mb-2">${item.icon}</span><span class="text-[10px] font-bold text-center leading-tight h-6 px-1">${item.name}</span><span class="text-green-700 font-black mt-1">${item.price}.-</span>`;
+                    const card = document.createElement('div'); card.className = 'menu-card shadow-sm hover:shadow-md transition-all'; card.onclick = () => addToCart(item);
+                    card.innerHTML = `${item.isWeight?'<span class="weight-tag">ชั่ง กก.</span>':''}<span class="text-3xl mb-2">${item.icon}</span><span class="text-[10px] font-bold text-center leading-tight h-6 px-1 text-slate-600">${item.name}</span><span class="text-green-700 font-black mt-1">${item.price}.-</span>`;
                     grid.appendChild(card);
                 });
             });
@@ -214,31 +277,27 @@
 
         function addToCart(i) {
             const x = cart.findIndex(c => c.name === i.name);
-            if(x > -1) cart[x].qty++; 
+            if(x > -1 && !i.isWeight) cart[x].qty++; 
             else cart.push({...i, qty: 1});
             updateUI();
             if(i.isWeight) openEdit(cart.findIndex(c => c.name === i.name));
         }
 
         function updateUI() {
-            const list = document.getElementById('cart-items'); 
-            let total = 0;
+            const list = document.getElementById('cart-items'); let total = 0;
             list.innerHTML = cart.map((item, idx) => {
                 const sum = item.price * item.qty; total += sum;
                 return `<div class="flex justify-between items-center border-b border-slate-50 py-1">
                     <div class="text-left"><p class="text-[10px] font-bold">${item.name}</p><p class="text-[8px] text-slate-400">${item.price} x ${item.qty}</p></div>
-                    <div class="flex items-center gap-2"><span class="font-bold text-xs">${sum.toLocaleString()}.-</span><button onclick="openEdit(${idx})" class="w-5 h-5 bg-slate-50 text-slate-400 rounded flex items-center justify-center print-hidden"><i class="fas fa-pen text-[7px]"></i></button></div>
+                    <div class="flex items-center gap-2"><span class="font-bold text-xs text-slate-700">${sum.toLocaleString()}.-</span><button onclick="openEdit(${idx})" class="w-5 h-5 bg-slate-50 text-slate-300 rounded flex items-center justify-center print-hidden"><i class="fas fa-pen text-[7px]"></i></button></div>
                 </div>`;
             }).join('');
 
             const disc = parseFloat(document.getElementById('discount-input').value) || 0;
-            let rawFinal = total - (discountType === 'percent' ? (total * disc / 100) : disc);
-            let final = Math.max(0, Math.round(rawFinal));
-
+            let final = Math.max(0, Math.round(total - (discountType === 'percent' ? (total * disc / 100) : disc)));
             document.getElementById('total-price').innerText = final.toLocaleString();
             document.getElementById('cur-date').innerText = new Date().toLocaleString('th-TH');
             document.getElementById('receipt-address').innerText = shopAddress;
-
             const qr = document.getElementById('bill-qr-container');
             qr.innerHTML = (final > 0 && promptpayID) ? `<img src="https://promptpay.io/${promptpayID}/${final}.png" class="mx-auto w-24">` : '';
         }
@@ -246,97 +305,94 @@
         async function handleCheckout() { 
             if(cart.length===0) return; 
             const finalTotal = parseInt(document.getElementById('total-price').innerText.replace(/,/g, ''));
-            
             const today = new Date().toLocaleDateString('th-TH');
-            const key = `sale_${branchName}_${today}`;
-            const currentTotal = parseFloat(localStorage.getItem(key)) || 0;
-            localStorage.setItem(key, currentTotal + finalTotal);
-            localStorage.setItem('last_bill_amount', finalTotal); 
+            const saleKey = `sale_${branchName}_${today}`;
+            localStorage.setItem(saleKey, (parseFloat(localStorage.getItem(saleKey)) || 0) + finalTotal);
 
             window.print(); 
-
-            const p = { 
-                date: new Date().toLocaleString('th-TH'), 
-                branch: branchName, 
-                items: cart.map(i=>`${i.name}(${i.qty})`).join(','), 
-                total: finalTotal, 
-                queue: orderQ 
-            };
-            
             if(scriptURL !== '') {
+                const p = { date: new Date().toLocaleString('th-TH'), branch: branchName, items: cart.map(i=>`${i.name}(${i.qty})`).join(','), total: finalTotal, queue: orderQ };
                 try { await fetch(scriptURL,{method:'POST',mode:'no-cors',body:JSON.stringify(p)}); } catch(e){}
             }
-
-            orderQ++; 
-            updateQueueDisplay(); 
-            clearCart(); 
-            refreshDailySale();
-        }
-
-        function voidLastSale() {
-            const lastAmount = parseFloat(localStorage.getItem('last_bill_amount')) || 0;
-            if(lastAmount === 0) return alert("ไม่พบข้อมูลบิลล่าสุด");
-            if(confirm(`ลดยอดบิลล่าสุด (${lastAmount}.-) ใช่หรือไม่?`)) {
-                const today = new Date().toLocaleDateString('th-TH');
-                const key = `sale_${branchName}_${today}`;
-                const currentTotal = parseFloat(localStorage.getItem(key)) || 0;
-                localStorage.setItem(key, Math.max(0, currentTotal - lastAmount));
-                localStorage.setItem('last_bill_amount', 0);
-                if(orderQ > 1) orderQ--;
-                updateQueueDisplay();
-                refreshDailySale();
-            }
+            orderQ++; updateQueueDisplay(); clearCart(); refreshDailySale();
         }
 
         function refreshDailySale() {
             const today = new Date().toLocaleDateString('th-TH');
-            const key = `sale_${branchName}_${today}`;
-            const currentTotal = parseFloat(localStorage.getItem(key)) || 0;
-            document.getElementById('daily-total-display').innerText = currentTotal.toLocaleString();
-            document.getElementById('last-update').innerText = "อัปเดต: " + new Date().toLocaleTimeString('th-TH');
+            const sale = parseFloat(localStorage.getItem(`sale_${branchName}_${today}`)) || 0;
+            const exp = parseFloat(localStorage.getItem(`exp_${branchName}_${today}`)) || 0;
+            document.getElementById('daily-total-display').innerText = sale.toLocaleString();
+            document.getElementById('daily-exp-display').innerText = exp.toLocaleString();
+            document.getElementById('daily-net-display').innerText = (sale - exp).toLocaleString();
         }
 
-        function openEdit(idx) { editingIdx = idx; document.getElementById('edit-title').innerText = cart[idx].name; document.getElementById('edit-input').value = cart[idx].qty; document.getElementById('edit-modal').style.display = 'flex'; document.getElementById('edit-input').select(); }
+        function renderHistory() {
+            const container = document.getElementById('history-list'); container.innerHTML = '';
+            for (let i = 1; i <= 7; i++) {
+                const d = new Date(); d.setDate(d.getDate() - i);
+                const dateStr = d.toLocaleDateString('th-TH');
+                const sale = parseFloat(localStorage.getItem(`sale_${branchName}_${dateStr}`)) || 0;
+                const exp = parseFloat(localStorage.getItem(`exp_${branchName}_${dateStr}`)) || 0;
+                const net = sale - exp;
+                if(sale > 0 || exp > 0) {
+                    const row = document.createElement('div');
+                    row.className = 'flex justify-between items-center p-3 bg-white rounded-2xl border border-slate-100 shadow-sm text-[11px] mb-2';
+                    row.innerHTML = `<div class="flex flex-col"><span class="font-bold text-slate-400">${dateStr}</span><span class="${net>=0?'text-green-500':'text-red-400'} font-black">${net>=0?'กำไร':'ขาดทุน'}</span></div>
+                                     <div class="text-right"><p class="text-slate-400">ขาย: ${sale.toLocaleString()} | จ่าย: ${exp.toLocaleString()}</p><p class="text-sm font-black text-slate-800">${net.toLocaleString()}.-</p></div>`;
+                    container.appendChild(row);
+                }
+            }
+        }
+
+        // --- ส่วนจัดการ Modal ต่างๆ ---
+        function openEdit(idx) { 
+            editingIdx = idx; 
+            document.getElementById('edit-title').innerText = cart[idx].name; 
+            document.getElementById('edit-input').value = cart[idx].qty; 
+            document.getElementById('edit-modal').style.display = 'flex'; 
+            document.getElementById('edit-input').focus();
+            document.getElementById('confirm-btn').onclick = confirmEdit;
+        }
         function confirmEdit() { const val = parseFloat(document.getElementById('edit-input').value); if(val >= 0) { if(val === 0) cart.splice(editingIdx, 1); else cart[editingIdx].qty = val; closeEdit(); updateUI(); } }
         function closeEdit() { document.getElementById('edit-modal').style.display = 'none'; }
-        
         function openAdmin() { 
             document.getElementById('admin-modal').style.display = 'flex'; 
+            document.getElementById('admin-branch-name').innerText = branchName;
             document.getElementById('pp-id-input').value = promptpayID; 
             document.getElementById('address-input').value = shopAddress; 
-            refreshDailySale(); 
-            renderHistory(); // เรียกแสดงประวัติเมื่อเปิดหน้าแอดมิน
-            renderAdminLists(); 
+            refreshDailySale(); renderHistory(); renderAdminLists(); 
         }
-
         function closeAdmin() { document.getElementById('admin-modal').style.display = 'none'; }
         
         function renderAdminLists() {
-            document.getElementById('branch-edit-list').innerHTML = branchList.map((b, i) => `<div class="flex bg-white border rounded-lg p-1 items-center"><input type="text" value="${b}" onchange="branchList[${i}]=this.value" class="flex-grow text-[10px] p-1 font-bold outline-none"><button onclick="branchList.splice(${i},1);renderAdminLists()" class="text-red-400 px-1">&times;</button></div>`).join('');
-            document.getElementById('admin-menu-list').innerHTML = menuItems.map((item, idx) => `
-                <div class="bg-white p-2 rounded-xl border flex flex-col gap-1">
-                    <div class="flex gap-2 items-center">
-                        <input type="text" value="${item.icon}" onchange="menuItems[${idx}].icon=this.value" class="w-8 p-1 bg-slate-50 rounded text-center">
-                        <input type="text" value="${item.name}" onchange="menuItems[${idx}].name=this.value" class="flex-grow text-[11px] font-bold outline-none">
-                        <input type="number" value="${item.price}" onchange="menuItems[${idx}].price=Number(this.value)" class="w-12 p-1 bg-slate-50 rounded text-right text-[11px]">
-                    </div>
-                    <div class="flex justify-between items-center px-1">
-                        <input type="text" value="${item.cat}" onchange="menuItems[${idx}].cat=this.value" class="text-[9px] text-green-600 border-b outline-none" placeholder="หมวดหมู่">
-                        <label class="text-[9px] flex items-center gap-1"><input type="checkbox" ${item.isWeight?'checked':''} onchange="menuItems[${idx}].isWeight=this.checked"> ชั่ง กก.</label>
-                        <button onclick="menuItems.splice(${idx},1);renderAdminLists()" class="text-red-400 text-[10px]"><i class="fas fa-trash"></i></button>
-                    </div>
-                </div>`).join('');
+            document.getElementById('branch-edit-list').innerHTML = branchList.map((b, i) => `<div class="flex bg-white border rounded-lg p-1 items-center shadow-sm"><input type="text" value="${b}" onchange="branchList[${i}]=this.value" class="flex-grow text-[10px] p-1 font-bold outline-none"><button onclick="branchList.splice(${i},1);renderAdminLists()" class="text-red-300 px-1">&times;</button></div>`).join('');
+            document.getElementById('admin-menu-list').innerHTML = menuItems.map((item, idx) => `<div class="bg-white p-2 rounded-xl border flex flex-col gap-1 shadow-sm"><div class="flex gap-2 items-center"><input type="text" value="${item.icon}" onchange="menuItems[${idx}].icon=this.value" class="w-8 p-1 bg-slate-50 rounded text-center"><input type="text" value="${item.name}" onchange="menuItems[${idx}].name=this.value" class="flex-grow text-[11px] font-bold text-slate-600 outline-none"><input type="number" value="${item.price}" onchange="menuItems[${idx}].price=Number(this.value)" class="w-12 p-1 bg-slate-50 rounded text-right text-[11px] font-bold"></div><div class="flex justify-between items-center px-1"><input type="text" value="${item.cat}" onchange="menuItems[${idx}].cat=this.value" class="text-[9px] text-green-600 outline-none" placeholder="หมวดหมู่"><label class="text-[9px] text-slate-400 flex items-center gap-1"><input type="checkbox" ${item.isWeight?'checked':''} onchange="menuItems[${idx}].isWeight=this.checked"> ชั่ง กก.</label><button onclick="menuItems.splice(${idx},1);renderAdminLists()" class="text-red-300 text-[10px]"><i class="fas fa-trash"></i></button></div></div>`).join('');
         }
-
-        function saveSettings() { promptpayID = document.getElementById('pp-id-input').value; shopAddress = document.getElementById('address-input').value; localStorage.setItem('garden_pp_id', promptpayID); localStorage.setItem('shop_address', shopAddress); localStorage.setItem('garden_menu', JSON.stringify(menuItems)); localStorage.setItem('garden_branches', JSON.stringify(branchList)); updateBranchOptions(); renderMenu(); updateUI(); closeAdmin(); }
+        
+        function saveSettings() { 
+            promptpayID = document.getElementById('pp-id-input').value; 
+            shopAddress = document.getElementById('address-input').value; 
+            localStorage.setItem('garden_pp_id', promptpayID); 
+            localStorage.setItem('shop_address', shopAddress); 
+            localStorage.setItem('garden_menu', JSON.stringify(menuItems)); 
+            localStorage.setItem('garden_branches', JSON.stringify(branchList)); 
+            updateBranchOptions(); renderMenu(); updateUI(); closeAdmin(); 
+        }
+        
         function changeBranch(v) { branchName=v; localStorage.setItem('selected_branch',v); updateBranchOptions(); updateUI(); refreshDailySale(); renderHistory(); }
-        function updateBranchOptions() { const s = document.getElementById('branch-selector'); s.innerHTML = branchList.map(b => `<option value="${b}" ${b === branchName ? 'selected' : ''}>📍 ${b}</option>`).join(''); document.getElementById('display-branch-title').innerText = branchName; document.getElementById('branch-display-receipt').innerText = branchName; }
+        function updateBranchOptions() { 
+            const s = document.getElementById('branch-selector'); 
+            s.innerHTML = branchList.map(b => `<option value="${b}" ${b === branchName ? 'selected' : ''}>📍 ${b}</option>`).join(''); 
+            document.getElementById('display-branch-title').innerText = branchName; 
+            document.getElementById('branch-display-receipt').innerText = branchName; 
+        }
         function updateQueueDisplay() { const s=orderQ.toString().padStart(2,'0'); document.getElementById('next-q').innerText='#'+s; document.getElementById('receipt-q').innerText=s; localStorage.setItem('garden_order_q',orderQ); }
         function resetQueue() { if(confirm('เริ่มคิวใหม่?')){ orderQ=1; updateQueueDisplay(); } }
         function clearCart() { cart=[]; document.getElementById('discount-input').value=0; updateUI(); }
         function toggleDiscountType(t) { discountType=t; document.getElementById('btn-baht').className=`px-2 text-[9px] font-bold ${t==='baht'?'bg-slate-800 text-white':'text-slate-400'}`; document.getElementById('btn-percent').className=`px-2 text-[9px] font-bold ${t==='percent'?'bg-slate-800 text-white':'text-slate-400'}`; updateUI(); }
         function addNewMenuItem() { menuItems.push({name:'สินค้าใหม่',price:0,cat:'ทั่วไป',icon:'✨',isWeight:false}); renderAdminLists(); }
 
+        // เริ่มต้นการทำงาน
         updateQueueDisplay(); updateBranchOptions(); renderMenu(); updateUI();
     </script>
 </body>
